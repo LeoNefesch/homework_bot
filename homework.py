@@ -34,11 +34,9 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def check_tokens() -> None:
+def check_tokens() -> bool:
     """Проверка наличия и доступности переменных окружения."""
-    if not all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID)):
-        logger.critical('Недоступны переменные окружения!')
-        raise KeyError('Проблема с наличием переменных окружения')
+    return all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID))
 
 
 def send_message(bot: telegram.Bot, message: str) -> None:
@@ -95,13 +93,14 @@ def parse_status(homework: dict) -> str:
 
 def main() -> None:
     """Основная логика работы бота."""
-    if check_tokens():
+    if not check_tokens():
+        logger.critical('Недоступны переменные окружения!')
         raise SystemExit(
             'Недоступны переменные окружения. '
             'Выполнение программы принудительно остановлено.'
         )
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = 0
+    current_timestamp = int(time.time())
     last_message = ''
     while True:
         try:
