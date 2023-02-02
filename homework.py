@@ -18,6 +18,7 @@ TELEGRAM_CHAT_ID = os.getenv('MY_TG_CHAT_ID')
 RETRY_PERIOD = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
+LAST_WEEK_TIME = 604800
 
 
 HOMEWORK_VERDICTS = {
@@ -41,6 +42,7 @@ def check_tokens() -> bool:
 
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Отправка сообщения."""
+    logger.info('Отправка сообщения...')
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.debug(f'Сообщение {message} отправлено.')
@@ -68,11 +70,17 @@ def get_api_answer(timestamp: int) -> dict:
 def check_response(response: dict) -> dict:
     """Проверка ответа API на соответствие документации."""
     if not isinstance(response, dict):
+        logger.error('Ответ API не является словарем')
         raise TypeError('Ответ API не является словарем')
     if 'homeworks' not in response:
+        logger.error('В ответе API домашки нет ключа `homeworks`')
         raise KeyError('В ответе API домашки нет ключа `homeworks`')
     if not isinstance(response['homeworks'], list):
+        logger.error('По ключу `homeworks` данные не в виде списка')
         raise TypeError('По ключу `homeworks` данные не в виде списка')
+    if not response['homeworks']:
+        logger.info('Пока нет ответа по домашке')
+        raise IndexError('Пока нет ответа по домашке')
     return response['homeworks'][0]
 
 
@@ -100,7 +108,7 @@ def main() -> None:
             'Выполнение программы принудительно остановлено.'
         )
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
+    current_timestamp = int(time.time()) - LAST_WEEK_TIME
     last_message = ''
     while True:
         try:
